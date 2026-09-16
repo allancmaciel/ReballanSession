@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Sessão Reballan — sorteador e catálogo pessoal de filmes.">
+<title>Sessão Reballan</title>
+
+<style>
+    * { box-sizing: border-box; }
+
+    :root {
+        --bg: #090807;
+        --panel: #15110e;
+        --panel-2: #1d1712;
+        --text: #f7ead5;
+        --muted: #a99b89;
+        --gold: #d5a85f;
+        --gold-light: #ffe4ae;
+        --line: rgba(244, 205, 142, .18);
+        --green: #7db88a;
+        --danger: #c87979;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family: Georgia, "Times New Roman", serif;
+        background:
+            radial-gradient(circle at top, #3a2a1e 0%, #17120f 35%, var(--bg) 75%);
+    }
+
+    .film-strip {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: .055;
+        background-image:
+            repeating-linear-gradient(
+                90deg,
+                transparent 0 54px,
+                #fff 54px 67px,
+                transparent 67px 124px
+            );
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+        width: min(1050px, 92vw);
+        margin: 0 auto;
+        padding: 42px 0 70px;
+    }
+
+    header {
+        text-align: center;
+        padding: 15px 0 30px;
+    }
+
+    .clapper {
+        font-size: 42px;
+        margin-bottom: 5px;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: clamp(36px, 7vw, 64px);
+        line-height: 1;
+        letter-spacing: -2px;
+    }
+
+    .subtitle {
+        margin: 14px auto 0;
+        max-width: 640px;
+        color: var(--muted);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1.1fr .9fr;
+        gap: 20px;
+    }
+
+    .panel {
+        background: rgba(18, 14, 11, .9);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: 0 25px 70px rgba(0,0,0,.35);
+        backdrop-filter: blur(9px);
+    }
+
+    .sort-panel {
+        padding: 30px;
+    }
+
+    .label {
+        font-family: Arial, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        font-size: 11px;
+        color: #b99a6c;
+        margin-bottom: 14px;
+    }
+
+    .movie-card {
+        min-height: 245px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 32px 24px;
+        margin-bottom: 20px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, #241b15, #120e0b);
+        border: 1px solid var(--line);
+    }
+
+    #movie {
+        margin: 0;
+        font-size: clamp(26px, 5vw, 42px);
+        line-height: 1.08;
+        color: var(--gold-light);
+    }
+
+    #director {
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+    }
+
+    .spinning #movie {
+        animation: flicker .1s infinite alternate;
+    }
+
+    @keyframes flicker {
+        from { opacity: .35; transform: translateY(-2px); }
+        to { opacity: 1; transform: translateY(2px); }
+    }
+
+    button {
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 22px;
+        cursor: pointer;
+        font-weight: 800;
+        transition: transform .15s, filter .15s, opacity .15s;
+    }
+
+    button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.07);
+    }
+
+    button:active {
+        transform: translateY(1px);
+    }
+
+    button:disabled {
+        opacity: .65;
+        cursor: wait;
+        transform: none;
+    }
+
+    .primary {
+        width: 100%;
+        background: var(--gold);
+        color: #17100a;
+        font-size: 16px;
+    }
+
+    .secondary {
+        background: #2a211a;
+        color: var(--gold-light);
+        border: 1px solid var(--line);
+    }
+
+    .danger {
+        background: transparent;
+        color: var(--danger);
+        border: 1px solid rgba(200,121,121,.3);
+        padding: 9px 13px;
+    }
+
+    .section {
+        padding: 25px;
+    }
+
+    .section + .section {
+        border-top: 1px solid var(--line);
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 18px;
+    }
+
+    h2 {
+        margin: 0;
+        font-size: 22px;
+    }
+
+    .count {
+        min-width: 30px;
+        height: 30px;
+        padding: 0 8px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #2a211a;
+        color: var(--gold-light);
+        font: 700 12px Arial, sans-serif;
+    }
+
+    form {
+        display: grid;
+        gap: 12px;
+    }
+
+    input {
+        width: 100%;
+        padding: 14px 15px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        outline: none;
+        background: #0f0c0a;
+        color: var(--text);
+        font: 15px Arial, sans-serif;
+    }
+
+    input:focus {
+        border-color: rgba(213,168,95,.55);
+        box-shadow: 0 0 0 3px rgba(213,168,95,.08);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .movie-list {
+        display: grid;
+        gap: 10px;
+        max-height: 440px;
+        overflow: auto;
+        padding-right: 3px;
+    }
+
+    .movie-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 15px;
+        border-radius: 14px;
+        background: var(--panel-2);
+        border: 1px solid rgba(244,205,142,.1);
+    }
+
+    .movie-info {
+        min-width: 0;
+    }
+
+    .movie-name {
+        margin: 0;
+        font-size: 17px;
+        color: var(--gold-light);
+        overflow-wrap: anywhere;
+    }
+
+    .movie-director {
+        margin: 5px 0 0;
+        font: 12px Arial, sans-serif;
+        color: var(--muted);
+    }
+
+    .item-actions {
+        display: flex;
+        flex-shrink: 0;
+        gap: 7px;
+    }
+
+    .empty {
+        padding: 25px;
+        text-align: center;
+        color: #756a5f;
+        font: 13px Arial, sans-serif;
+        border: 1px dashed rgba(244,205,142,.12);
+        border-radius: 14px;
+    }
+
+    .stats {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        font: 12px Arial, sans-serif;
+        color: var(--muted);
+    }
+
+    .stat {
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: rgba(42,33,26,.8);
+    }
+
+    footer {
+        margin-top: 22px;
+        text-align: center;
+        color: #675e55;
+        font: 11px Arial, sans-serif;
+    }
+
+    @media (max-width: 800px) {
+        .grid {
+            grid-template-columns: 1fr;
+        }
+
+        .sort-panel {
+            padding: 20px;
+        }
+
+        .section {
+            padding: 20px;
+        }
+    }
+
+    @media (max-width: 520px) {
+        .container {
+            width: min(94vw, 1050px);
+            padding-top: 25px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .movie-item {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .item-actions {
+            width: 100%;
+        }
+
+        .item-actions button {
+            flex: 1;
+        }
+    }
+</style>
+</head>
+
+<body>
+<div class="film-strip"></div>
+
+<main class="container">
+    <header>
+        <div class="clapper">🎬</div>
+        <h1>Sessão Reballan</h1>
+        <p class="subtitle">
+            Seu pequeno catálogo de cinema: escolha o próximo filme, marque o que já assistiu e adicione novos títulos.
+        </p>
+    </header>
+
+    <div class="grid">
+        <div class="panel sort-panel">
+            <div class="label">Seu filme da noite</div>
+
+            <div class="movie-card" id="movieCard">
+                <div class="label">Sorteio</div>
+                <h2 id="movie">Clique para sortear</h2>
+                <p id="director">Escolha um filme para a sessão.</p>
+            </div>
+
+            <button class="primary" id="sortButton">🎲 Sortear filme</button>
+
+            <div class="stats">
+                <span class="stat">🎬 <strong id="availableCount">0</strong> disponíveis</span>
+                <span class="stat">✅ <strong id="watchedCount">0</strong> assistidos</span>
+                <span class="stat">📚 <strong id="totalCount">0</strong> no catálogo</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <section class="section">
+                <div class="section-title">
+                    <h2>➕ Adicionar filme</h2>
+                </div>
+
+                <form id="movieForm">
+                    <input id="titleInput" type="text" placeholder="Nome do filme" maxlength="120" required>
+                    <input id="directorInput" type="text" placeholder="Diretor (opcional)" maxlength="120">
+                    <button class="secondary" type="submit">Adicionar ao catálogo</button>
+                </form>
+            </section>
+
+            <section class="section">
+                <div class="section-title">
+                    <h2>🎬 Filmes disponíveis</h2>
+                    <span class="count" id="availableBadge">0</span>
+                </div>
+                <div class="movie-list" id="availableList"></div>
+            </section>
+
+            <section class="section">
+                <div class="section-title">
+                    <h2>✅ Filmes assistidos</h2>
+                    <span class="count" id="watchedBadge">0</span>
+                </div>
+                <div class="movie-list" id="watchedList"></div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        Os filmes adicionados são salvos neste navegador usando localStorage.
+    </footer>
+</main>
+
+<script>
+const STORAGE_KEY = "sessao-reballan-filmes-v2";
+
+const filmesIniciais = [
+    { id: "1", title: "A felicidade não se compra", director: "Frank Capra", watched: false },
+    { id: "2", title: "A pé ele não vai longe", director: "Gus Van Sant", watched: false },
+    { id: "3", title: "A primeira noite de um homem", director: "Mike Nichols", watched: false },
+    { id: "4", title: "A turba", director: "King Vidor", watched: false },
+    { id: "5", title: "Adorável vagabundo", director: "Frank Capra", watched: false },
+    { id: "6", title: "Anomalisa", director: "Charlie Kaufman e Duke Johnson", watched: false },
+    { id: "7", title: "As duas faces da felicidade", director: "Agnès Varda", watched: false },
+    { id: "8", title: "As faces de Toni Erdmann", director: "Maren Ade", watched: false },
+    { id: "9", title: "Assunto de família", director: "Hirokazu Koreeda", watched: false },
+    { id: "10", title: "Bonequinha de luxo", director: "Blake Edwards", watched: false },
+    { id: "11", title: "Cafarnaum", director: "Nadine Labaki", watched: false },
+    { id: "12", title: "Casablanca", director: "Michael Curtiz", watched: false },
+    { id: "13", title: "Cidadão Kane", director: "Orson Welles", watched: false },
+    { id: "14", title: "Cinturão vermelho", director: "David Mamet", watched: false },
+    { id: "15", title: "Cleo das 5 às 7", director: "Agnès Varda", watched: false },
+    { id: "16", title: "Correndo com tesouras", director: "Ryan Murphy", watched: false },
+    { id: "17", title: "Crepúsculo dos deuses", director: "Billy Wilder", watched: false },
+    { id: "18", title: "Dá pra fazer (Si può fare)", director: "Giulio Manfredonia", watched: false },
+    { id: "19", title: "Diálogos com J. Krishnamurti", director: "", watched: false },
+    { id: "20", title: "Doutor Jivago", director: "David Lean", watched: false },
+    { id: "21", title: "Felicidade", director: "Todd Solondz", watched: false },
+    { id: "22", title: "Frantz", director: "François Ozon", watched: false },
+    { id: "23", title: "Hiroshima, meu amor", director: "Alain Resnais", watched: false },
+    { id: "24", title: "Histórias proibidas", director: "Todd Solondz", watched: false },
+    { id: "25", title: "Imagem e palavra", director: "Jean-Luc Godard", watched: false },
+    { id: "26", title: "Kramer vs. Kramer", director: "Robert Benton", watched: false },
+    { id: "27", title: "Luzes da cidade", director: "Charles Chaplin", watched: false },
+    { id: "28", title: "Minha noite com ela", director: "Éric Rohmer", watched: false },
+    { id: "29", title: "Mister Lonely", director: "Harmony Korine", watched: false },
+    { id: "30", title: "No coração da escuridão", director: "Paul Schrader", watched: false },
+    { id: "31", title: "O beijo no asfalto", director: "Murilo Benício", watched: false },
+    { id: "32", title: "O incrível homem que encolheu", director: "Jack Arnold", watched: false },
+    { id: "33", title: "Onda nova", director: "José Antonio Garcia e Ícaro C. Martins", watched: false },
+    { id: "34", title: "Roda gigante", director: "Woody Allen", watched: false },
+    { id: "35", title: "Perdidos na noite", director: "John Schlesinger", watched: false },
+    { id: "36", title: "Zelig", director: "Woody Allen", watched: false }
+];
+
+let filmes = carregarFilmes();
+
+const movieEl = document.getElementById("movie");
+const directorEl = document.getElementById("director");
+const movieCard = document.getElementById("movieCard");
+const sortButton = document.getElementById("sortButton");
+
+const movieForm = document.getElementById("movieForm");
+const titleInput = document.getElementById("titleInput");
+const directorInput = document.getElementById("directorInput");
+
+const availableList = document.getElementById("availableList");
+const watchedList = document.getElementById("watchedList");
+
+function carregarFilmes() {
+    try {
+        const salvo = localStorage.getItem(STORAGE_KEY);
+        if (!salvo) return [...filmesIniciais];
+
+        const parsed = JSON.parse(salvo);
+        if (!Array.isArray(parsed)) return [...filmesIniciais];
+
+        return parsed;
+    } catch {
+        return [...filmesIniciais];
+    }
+}
+
+function salvarFilmes() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filmes));
+}
+
+function escaparHtml(texto) {
+    const div = document.createElement("div");
+    div.textContent = texto;
+    return div.innerHTML;
+}
+
+function diretorTexto(filme) {
+    return filme.director ? `Direção: ${escaparHtml(filme.director)}` : "Direção não informada";
+}
+
+function criarItem(filme, assistido) {
+    const item = document.createElement("div");
+    item.className = "movie-item";
+
+    const info = document.createElement("div");
+    info.className = "movie-info";
+    info.innerHTML = `
+        <p class="movie-name">${escaparHtml(filme.title)}</p>
+        <p class="movie-director">${diretorTexto(filme)}</p>
+    `;
+
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "secondary";
+    toggleButton.textContent = assistido ? "↩ Devolver à lista" : "✓ Já assisti";
+    toggleButton.addEventListener("click", () => alternarAssistido(filme.id));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "danger";
+    deleteButton.textContent = "Excluir";
+    deleteButton.addEventListener("click", () => excluirFilme(filme.id));
+
+    actions.append(toggleButton, deleteButton);
+    item.append(info, actions);
+
+    return item;
+}
+
+function renderizar() {
+    const disponiveis = filmes.filter(f => !f.watched);
+    const assistidos = filmes.filter(f => f.watched);
+
+    availableList.innerHTML = "";
+    watchedList.innerHTML = "";
+
+    if (disponiveis.length === 0) {
+        availableList.innerHTML = `<div class="empty">Nenhum filme disponível para sorteio.</div>`;
+    } else {
+        disponiveis.forEach(f => availableList.appendChild(criarItem(f, false)));
+    }
+
+    if (assistidos.length === 0) {
+        watchedList.innerHTML = `<div class="empty">Nenhum filme marcado como assistido ainda.</div>`;
+    } else {
+        assistidos.forEach(f => watchedList.appendChild(criarItem(f, true)));
+    }
+
+    document.getElementById("availableCount").textContent = disponiveis.length;
+    document.getElementById("watchedCount").textContent = assistidos.length;
+    document.getElementById("totalCount").textContent = filmes.length;
+    document.getElementById("availableBadge").textContent = disponiveis.length;
+    document.getElementById("watchedBadge").textContent = assistidos.length;
+}
+
+function alternarAssistido(id) {
+    filmes = filmes.map(f => f.id === id ? { ...f, watched: !f.watched } : f);
+    salvarFilmes();
+    renderizar();
+}
+
+function excluirFilme(id) {
+    const filme = filmes.find(f => f.id === id);
+    if (!filme) return;
+
+    const confirmar = window.confirm(`Excluir "${filme.title}" do catálogo?`);
+    if (!confirmar) return;
+
+    filmes = filmes.filter(f => f.id !== id);
+    salvarFilmes();
+    renderizar();
+}
+
+function gerarId() {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+movieForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const title = titleInput.value.trim();
+    const director = directorInput.value.trim();
+
+    if (!title) return;
+
+    filmes.unshift({
+        id: gerarId(),
+        title,
+        director,
+        watched: false
+    });
+
+    salvarFilmes();
+    renderizar();
+
+    titleInput.value = "";
+    directorInput.value = "";
+    titleInput.focus();
+});
+
+sortButton.addEventListener("click", () => {
+    const disponiveis = filmes.filter(f => !f.watched);
+
+    if (disponiveis.length === 0) {
+        movieEl.textContent = "Todos foram assistidos! 🎉";
+        directorEl.textContent = "Adicione novos filmes ou devolva algum para a lista.";
+        return;
+    }
+
+    sortButton.disabled = true;
+    movieCard.classList.add("spinning");
+
+    let ticks = 0;
+    const totalTicks = 18;
+
+    const interval = setInterval(() => {
+        const temporario = disponiveis[Math.floor(Math.random() * disponiveis.length)];
+        movieEl.textContent = temporario.title;
+        directorEl.textContent = temporario.director
+            ? `Direção: ${temporario.director}`
+            : "Direção não informada";
+
+        ticks++;
+
+        if (ticks >= totalTicks) {
+            clearInterval(interval);
+
+            const escolhido = disponiveis[Math.floor(Math.random() * disponiveis.length)];
+            movieEl.textContent = escolhido.title;
+            directorEl.textContent = escolhido.director
+                ? `Direção: ${escolhido.director}`
+                : "Direção não informada";
+
+            movieCard.classList.remove("spinning");
+            sortButton.disabled = false;
+        }
+    }, 80);
+});
+
+renderizar();
+</script>
+</body>
+</html>
